@@ -12,26 +12,33 @@
     
     <div id="pairing" class="bg-white p-12 rounded-[40px] shadow-2xl text-center max-w-md w-full">
         <h1 class="text-3xl font-black text-slate-800 mb-2 uppercase tracking-tighter">Link Tablet</h1>
+        <p class="text-slate-400 text-sm mb-6 uppercase font-bold">Enter PIN from Laptop</p>
         <input type="number" id="pin" placeholder="0000" class="text-6xl w-full text-center font-black border-b-8 border-blue-600 mb-10 outline-none text-blue-600 pb-2">
         <button onclick="connect()" class="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-all">CONNECT</button>
     </div>
 
     <div id="display" class="hidden w-full h-full max-w-7xl gap-8">
         <div class="w-5/12 bg-white rounded-[50px] p-10 shadow-2xl flex flex-col">
-            <h2 class="text-3xl font-black text-slate-800 mb-8 uppercase tracking-tighter">Medicine List</h2>
+            <h2 class="text-3xl font-black text-slate-800 mb-8 uppercase tracking-tighter">Current Bill</h2>
             <div id="items" class="space-y-4 overflow-y-auto flex-grow pr-4"></div>
             <div id="whatsapp-area" class="mt-8 p-6 bg-green-50 rounded-[35px] border-2 border-green-200 opacity-20 pointer-events-none transition-all">
                 <p class="font-black text-green-800 uppercase text-xs mb-3 tracking-widest">Get Digital Bill</p>
                 <div class="flex gap-3">
-                    <input type="number" id="custPhone" placeholder="Mobile Number" class="flex-grow p-4 rounded-2xl border-none shadow-inner text-xl font-bold">
+                    <input type="number" id="custPhone" placeholder="Number" class="flex-grow p-4 rounded-2xl border-none shadow-inner text-xl font-bold">
                     <button onclick="sendWhatsApp()" class="bg-green-600 text-white px-6 rounded-2xl font-black">SEND</button>
                 </div>
             </div>
         </div>
 
-        <div class="w-7/12 flex flex-col justify-center items-center bg-blue-600 rounded-[50px] shadow-2xl p-12 text-white text-center">
+        <div class="w-7/12 flex flex-col justify-center items-center bg-blue-600 rounded-[50px] shadow-2xl p-12 text-white text-center relative">
+            <div id="success-overlay" class="hidden absolute inset-0 bg-green-500 rounded-[50px] z-50 flex flex-col items-center justify-center animate-in fade-in duration-300">
+                <div class="text-9xl mb-6">✅</div>
+                <h2 class="text-6xl font-black uppercase">Paid!</h2>
+                <p class="text-2xl mt-4 opacity-80">Thank you for your visit</p>
+            </div>
+
             <p class="text-blue-200 text-2xl font-bold uppercase tracking-widest mb-4">Total Amount</p>
-            <div id="total" class="text-[12rem] font-black leading-none mb-12 tracking-tighter drop-shadow-lg">₹0</div>
+            <div id="total" class="text-[12rem] font-black leading-none mb-12 tracking-tighter">₹0</div>
             
             <div id="qr-container" class="hidden bg-white p-8 rounded-[40px] shadow-2xl">
                 <div id="qrcode"></div>
@@ -59,20 +66,29 @@
             });
 
             conn.on('data', data => {
-                if(data.type === 'REFRESH') { location.reload(); return; }
+                if(data.type === 'CLEAR') {
+                    showSuccess();
+                    return;
+                }
+
                 lastBillData = data;
                 document.getElementById('items').innerHTML = data.cart.map(i => `
                     <div class="flex justify-between items-center bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                        <div><p class="text-2xl font-black text-slate-800">${i.name}</p><p class="text-sm font-bold text-slate-400 uppercase">Qty: ${i.cartQty}</p></div>
+                        <div><p class="text-2xl font-black text-slate-800">${i.name}</p><p class="text-sm font-bold text-slate-400">Qty: ${i.cartQty}</p></div>
                         <b class="text-3xl text-blue-600 font-black tracking-tighter">₹${(i.sale * i.cartQty).toFixed(2)}</b>
                     </div>
                 `).join('');
-                document.getElementById('whatsapp-area').classList.toggle('opacity-20', data.cart.length === 0);
-                document.getElementById('whatsapp-area').classList.toggle('pointer-events-none', data.cart.length === 0);
+
+                const wa = document.getElementById('whatsapp-area');
+                wa.classList.toggle('opacity-20', data.cart.length === 0);
+                wa.classList.toggle('pointer-events-none', data.cart.length === 0);
+
                 document.getElementById('total').innerText = data.total;
                 const val = parseFloat(data.total.replace('₹',''));
+                
                 document.getElementById('qr-container').classList.add('hidden');
                 document.getElementById('cash-btn').classList.add('hidden');
+
                 if(val > 0) {
                     if(data.mode === 'UPI') {
                         document.getElementById('qr-container').classList.remove('hidden');
@@ -85,10 +101,22 @@
 
         function triggerHandover() {
             if (conn && conn.open) {
-                document.getElementById('cash-btn').innerText = "SAVING...";
-                document.getElementById('cash-btn').disabled = true;
                 conn.send({ command: 'COMPLETE_SALE' });
             }
+        }
+
+        function showSuccess() {
+            const overlay = document.getElementById('success-overlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                // Clear the UI without reloading
+                document.getElementById('items').innerHTML = "";
+                document.getElementById('total').innerText = "₹0";
+                document.getElementById('qr-container').classList.add('hidden');
+                document.getElementById('cash-btn').classList.add('hidden');
+                document.getElementById('custPhone').value = "";
+            }, 3000);
         }
 
         function sendWhatsApp() {
