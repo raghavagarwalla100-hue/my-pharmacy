@@ -13,7 +13,7 @@
         <div class="flex gap-6 items-center">
             <button onclick="showTab('billing')" class="hover:text-yellow-400 font-bold transition">BILLING</button>
             <button onclick="showTab('inventory')" class="hover:text-yellow-400 font-bold transition">STOCK</button>
-            <div class="bg-blue-950 px-4 py-1 rounded-lg border border-blue-700 text-center">
+            <div class="bg-blue-950 px-4 py-1 rounded-lg border border-blue-700 text-center min-w-[100px]">
                 <span class="text-[10px] text-blue-300 block uppercase">Tablet PIN</span>
                 <span id="pinDisplay" class="text-xl font-black text-yellow-400 leading-none">----</span>
             </div>
@@ -124,10 +124,10 @@
             });
         });
 
-        function syncToTablet() {
+        function syncToTablet(type = 'UPDATE') {
             if (tabletConn && tabletConn.open) {
                 const totalVal = document.getElementById('editableGrandTotal').value;
-                tabletConn.send({ cart, total: "₹" + totalVal, mode: paymentMode });
+                tabletConn.send({ type, cart, total: "₹" + totalVal, mode: paymentMode });
             }
         }
 
@@ -229,8 +229,14 @@
             });
             localStorage.setItem('ph_inv', JSON.stringify(inventory));
             localStorage.setItem('ph_sales', JSON.stringify(salesHistory));
-            if (tabletConn && tabletConn.open) tabletConn.send({ type: 'REFRESH' });
-            location.reload(); 
+            
+            // SOFT RESET INSTEAD OF RELOAD
+            syncToTablet('CLEAR'); // Tell tablet to clear screen
+            cart = [];
+            document.getElementById('billDiscount').value = 0;
+            renderCart();
+            updateSalesTable();
+            document.getElementById('billSearch').focus();
         }
 
         function updateSalesTable() {
@@ -238,7 +244,7 @@
             const todaySales = salesHistory.filter(s => s.date === today);
             document.getElementById('todayRev').innerText = "₹" + todaySales.reduce((acc, s) => acc + s.amount, 0).toFixed(2);
             document.getElementById('salesHistoryList').innerHTML = todaySales.map(s => `
-                <tr class="border-b"><td class="p-3">${s.time}</td><td class="p-3 text-left truncate max-w-xs">${s.summary}</td><td class="p-3 font-bold text-blue-600">₹${s.amount}</td><td class="p-3 flex justify-center gap-2"><button onclick="editPastSale(${s.id})" class="text-blue-500 hover:underline">Edit</button><button onclick="deleteSale(${s.id})" class="text-red-400 hover:underline">Delete</button></td></tr>
+                <tr class="border-b"><td class="p-3">${s.time}</td><td class="p-3 text-left truncate max-w-xs">${s.summary}</td><td class="p-3 font-bold text-blue-600">₹${s.amount}</td><td class="p-3 flex justify-center gap-2"><button onclick="editPastSale(${s.id})" class="text-blue-500 hover:underline text-xs">Edit</button><button onclick="deleteSale(${s.id})" class="text-red-400 hover:underline text-xs">Del</button></td></tr>
             `).join('');
         }
 
