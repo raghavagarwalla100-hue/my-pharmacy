@@ -2,119 +2,117 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Pharma Systems</title>
+    <title>PharmaPro | Billing Hub</title>
     <style>
-        :root { --primary: #004d40; --accent: #00bfa5; --warning: #ff5252; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; }
-        header { background: var(--primary); color: white; padding: 1rem; text-align: center; }
-        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; color: var(--primary); }
-        input, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background: var(--accent); color: white; font-weight: bold; border: none; cursor: pointer; }
-        button:hover { background: #009688; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .expired { color: white; background-color: var(--warning); font-weight: bold; }
+        :root { --blue: #1e3a8a; --green: #10b981; --gray: #f3f4f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: var(--gray); height: 100vh; }
+        
+        /* Sidebar */
+        nav { width: 250px; background: var(--blue); color: white; padding: 20px; flex-shrink: 0; }
+        nav h2 { border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+        
+        /* Main Content */
+        main { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        .btn-add { background: var(--blue); color: white; }
+        .btn-pay { background: var(--green); color: white; margin-top: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; background: #f9fafb; padding: 10px; color: #6b7280; font-size: 0.8rem; }
+        td { padding: 12px; border-bottom: 1px solid #edf2f7; }
+        .total-box { font-size: 1.5rem; font-weight: bold; text-align: right; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>PharmaControl v2.0 - Inventory & Billing</h1>
-</header>
+<nav>
+    <h2>💊 PharmaPro</h2>
+    <p>v3.0 Permanent Site</p>
+    <hr>
+    <p>Step 1: Add Stock<br>Step 2: Scan to Bill<br>Step 3: Show Tablet</p>
+</nav>
 
-<div class="container">
-    <div class="card">
-        <h2>Stock Entry</h2>
-        <input type="text" id="barcode" placeholder="Scan Barcode / ID">
-        <input type="text" id="medName" placeholder="Medicine Name">
-        <label>Full Expiry Date:</label>
-        <input type="date" id="expiryDate">
-        <input type="number" id="mrp" placeholder="MRP (Selling Price)">
-        <input type="number" id="stockQty" placeholder="Quantity in Stock">
-        <button onclick="addToStock()">Add to Inventory</button>
+<main>
+    <div class="grid">
+        <div class="card">
+            <h3>Inventory Entry</h3>
+            <input type="text" id="pName" placeholder="Medicine Name">
+            <input type="date" id="pExp" title="Expiry Date">
+            <input type="number" id="pMrp" placeholder="MRP (Price)">
+            <input type="number" id="pStock" placeholder="Current Stock Qty">
+            <button class="btn btn-add" onclick="addStock()">Add to Inventory & Clear</button>
+        </div>
+
+        <div class="card">
+            <h3>Quick Billing</h3>
+            <input type="text" id="scanner" placeholder="Type name to sell..." oninput="searchAndSell()">
+            <table>
+                <thead><tr><th>Item</th><th>Expiry</th><th>Price</th></tr></thead>
+                <tbody id="billList"></tbody>
+            </table>
+            <div class="total-box" id="grandTotal">Total: ₹0.00</div>
+            <button class="btn btn-pay" onclick="syncWithTablet()">GENERATE TABLET LINK</button>
+        </div>
     </div>
 
-    <div class="card">
-        <h2>Quick Billing</h2>
-        <input type="text" id="searchScan" placeholder="Scan Barcode to Sell" oninput="searchAndAdd()">
-        <table id="billTable">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <h3 id="grandTotal">Grand Total: ₹0</h3>
-        <button style="background: var(--primary);" onclick="generateQR()">Generate Payment QR for Tablet</button>
+    <div id="syncModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:white; padding:50px; text-align:center;">
+        <h1>Send to Tablet</h1>
+        <p>Open this URL on your tablet browser:</p>
+        <h2 id="tabletUrlDisplay" style="background:#333; padding:15px; word-break: break-all;"></h2>
+        <button class="btn" style="width:200px; background:red;" onclick="document.getElementById('syncModal').style.display='none'">Close</button>
     </div>
-</div>
-
-<div class="container">
-    <div class="card" style="grid-column: span 2;">
-        <h2>Current Inventory & Expiry Watch</h2>
-        <table id="inventoryTable">
-            <thead>
-                <tr>
-                    <th>Barcode</th>
-                    <th>Name</th>
-                    <th>Expiry Date</th>
-                    <th>MRP</th>
-                    <th>Stock</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="inventoryBody"></tbody>
-        </table>
-    </div>
-</div>
+</main>
 
 <script>
-    let inventory = JSON.parse(localStorage.getItem('pharmaStock')) || [];
+    let stock = JSON.parse(localStorage.getItem('pharmaData')) || [];
+    let bill = [];
 
-    function addToStock() {
+    function addStock() {
         const item = {
-            barcode: document.getElementById('barcode').value,
-            name: document.getElementById('medName').value,
-            expiry: document.getElementById('expiryDate').value,
-            mrp: document.getElementById('mrp').value,
-            qty: document.getElementById('stockQty').value
+            name: document.getElementById('pName').value,
+            exp: document.getElementById('pExp').value,
+            mrp: document.getElementById('pMrp').value,
+            qty: document.getElementById('pStock').value
         };
-        inventory.push(item);
-        localStorage.setItem('pharmaStock', JSON.stringify(inventory));
-        renderInventory();
-        alert("Medicine Added Successfully!");
+        if(!item.name || !item.mrp) return alert("Fill Name and Price!");
+        stock.push(item);
+        localStorage.setItem('pharmaData', JSON.stringify(stock));
+        document.querySelectorAll('input').forEach(i => i.value = "");
+        alert("Stock Updated!");
     }
 
-    function renderInventory() {
-        const body = document.getElementById('inventoryBody');
-        body.innerHTML = "";
-        const today = new Date();
-
-        inventory.forEach(item => {
-            const expDate = new Date(item.expiry);
-            const isExpired = expDate < today;
-            const row = `<tr class="${isExpired ? 'expired' : ''}">
-                <td>${item.barcode}</td>
-                <td>${item.name}</td>
-                <td>${item.expiry}</td>
-                <td>₹${item.mrp}</td>
-                <td>${item.qty}</td>
-                <td>${isExpired ? 'EXPIRED' : 'OK'}</td>
-            </tr>`;
-            body.innerHTML += row;
-        });
+    function searchAndSell() {
+        let val = document.getElementById('scanner').value.toLowerCase();
+        let match = stock.find(s => s.name.toLowerCase() === val);
+        if(match) {
+            bill.push(match);
+            renderBill();
+            document.getElementById('scanner').value = "";
+        }
     }
 
-    // Initialize display
-    renderInventory();
+    function renderBill() {
+        let total = 0;
+        document.getElementById('billList').innerHTML = bill.map(item => {
+            total += parseFloat(item.mrp);
+            return `<tr><td>${item.name}</td><td>${item.exp}</td><td>₹${item.mrp}</td></tr>`;
+        }).join('');
+        document.getElementById('grandTotal').innerText = `Total: ₹${total.toFixed(2)}`;
+    }
+
+    function syncWithTablet() {
+        let total = document.getElementById('grandTotal').innerText.split('₹')[1];
+        // This builds the link for your Netlify site
+        let baseUrl = window.location.href.replace('index.html', '').replace(/\/$/, "");
+        let finalUrl = `${baseUrl}/tablet.html?total=${total}`;
+        
+        document.getElementById('syncModal').style.display = 'block';
+        document.getElementById('tabletUrlDisplay').innerText = finalUrl;
+    }
 </script>
-
 </body>
 </html>
