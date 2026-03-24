@@ -13,33 +13,33 @@
     <div id="pairing" class="bg-white p-12 rounded-[40px] shadow-2xl text-center max-w-md w-full">
         <h1 class="text-3xl font-black text-slate-800 mb-2">Tablet Link</h1>
         <input type="number" id="pin" placeholder="0000" class="text-6xl w-full text-center font-black border-b-8 border-blue-600 mb-10 outline-none text-blue-600">
-        <button onclick="connect()" class="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl">CONNECT</button>
+        <button onclick="connect()" class="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl">CONNECT</button>
     </div>
 
-    <div id="display" class="hidden w-full h-full max-w-7xl gap-6">
+    <div id="display" class="hidden w-full h-full max-w-7xl gap-6 animate-in fade-in zoom-in duration-300">
         <div class="w-1/2 bg-white rounded-[40px] p-10 shadow-2xl flex flex-col">
-            <h2 class="text-3xl font-black text-slate-800 mb-8 flex items-center gap-3">Your Bill Items</h2>
-            <div id="items" class="space-y-4 overflow-y-auto flex-grow"></div>
+            <h2 class="text-3xl font-black text-slate-800 mb-8">Bill Items</h2>
+            <div id="items" class="space-y-4 overflow-y-auto flex-grow pr-4"></div>
             
-            <div id="whatsapp-area" class="hidden mt-6 p-6 bg-green-50 rounded-3xl border-2 border-green-200">
-                <p class="font-bold text-green-800 mb-2">Send Bill to Customer WhatsApp:</p>
+            <div id="whatsapp-area" class="mt-6 p-6 bg-green-50 rounded-3xl border-2 border-green-200 opacity-20 pointer-events-none transition-all duration-500">
+                <p class="font-bold text-green-800 mb-2">WhatsApp Digital Bill</p>
                 <div class="flex gap-2">
-                    <input type="number" id="custPhone" placeholder="Mobile Number" class="flex-grow p-4 rounded-xl border-none shadow-inner">
-                    <button onclick="sendWhatsApp()" class="bg-green-600 text-white px-6 rounded-xl font-bold">SEND</button>
+                    <input type="number" id="custPhone" placeholder="Mobile Number" class="flex-grow p-4 rounded-xl border-none shadow-inner text-xl font-bold">
+                    <button onclick="sendWhatsApp()" class="bg-green-600 text-white px-8 rounded-xl font-black">SEND</button>
                 </div>
             </div>
         </div>
 
-        <div class="w-1/2 flex flex-col justify-center items-center bg-blue-600 rounded-[40px] shadow-2xl p-12 text-white text-center">
+        <div class="w-1/2 flex flex-col justify-center items-center bg-blue-600 rounded-[40px] shadow-2xl p-12 text-white">
             <p class="text-blue-200 text-xl font-bold uppercase tracking-widest">Total Amount</p>
             <div id="total" class="text-9xl font-black mb-10">₹0</div>
             
-            <div id="qr-container" class="hidden bg-white p-6 rounded-[30px]">
+            <div id="qr-container" class="hidden bg-white p-6 rounded-[30px] shadow-xl animate-bounce">
                 <div id="qrcode"></div>
-                <p class="text-slate-800 font-black mt-4 text-xs uppercase">vyapar.172721135496@hdfcbank</p>
+                <p class="text-slate-800 font-black mt-4 text-[10px] text-center uppercase tracking-tighter">vyapar.172721135496@hdfcbank</p>
             </div>
 
-            <div id="cash-msg" class="hidden bg-blue-500 p-10 rounded-[30px] border-4 border-blue-400 font-black text-2xl uppercase">Cash Payment</div>
+            <div id="cash-msg" class="hidden bg-blue-500 p-10 rounded-[30px] border-4 border-blue-400 font-black text-2xl uppercase">Hand Over Cash</div>
         </div>
     </div>
 
@@ -59,19 +59,29 @@
 
             conn.on('data', data => {
                 lastBillData = data;
-                document.getElementById('items').innerHTML = data.cart.map(i => `
-                    <div class="flex justify-between items-center bg-slate-50 p-6 rounded-2xl">
-                        <div><p class="text-2xl font-black">${i.name}</p><p class="text-sm font-bold opacity-40">Qty: ${i.cartQty}</p></div>
+                const itemsDiv = document.getElementById('items');
+                const whatsappBox = document.getElementById('whatsapp-area');
+                
+                // Show items
+                itemsDiv.innerHTML = data.cart.map(i => `
+                    <div class="flex justify-between items-center bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <div><p class="text-2xl font-black text-slate-800">${i.name}</p><p class="text-sm font-bold text-slate-400">Qty: ${i.cartQty}</p></div>
                         <b class="text-3xl text-blue-600 font-black">₹${(i.sale * i.cartQty).toFixed(2)}</b>
                     </div>
                 `).join('');
+
+                // Toggle WhatsApp Area based on items in cart
+                if(data.cart.length > 0) {
+                    whatsappBox.classList.remove('opacity-20', 'pointer-events-none');
+                } else {
+                    whatsappBox.classList.add('opacity-20', 'pointer-events-none');
+                }
 
                 document.getElementById('total').innerText = data.total;
                 const val = parseFloat(data.total.replace('₹',''));
                 
                 document.getElementById('qr-container').classList.add('hidden');
                 document.getElementById('cash-msg').classList.add('hidden');
-                document.getElementById('whatsapp-area').classList.toggle('hidden', !data.finalize);
 
                 if(val > 0) {
                     if(data.mode === 'UPI') {
@@ -79,7 +89,7 @@
                         document.getElementById('qrcode').innerHTML = "";
                         new QRCode(document.getElementById('qrcode'), {
                             text: `upi://pay?pa=vyapar.172721135496@hdfcbank&pn=Pharmacy&am=${val}&cu=INR`,
-                            width: 250, height: 250
+                            width: 260, height: 260
                         });
                     } else { document.getElementById('cash-msg').classList.remove('hidden'); }
                 }
@@ -88,13 +98,13 @@
 
         function sendWhatsApp() {
             const phone = document.getElementById('custPhone').value;
-            if(!phone || !lastBillData) return alert("Enter Phone Number");
+            if(!phone || !lastBillData || lastBillData.cart.length === 0) return alert("Enter Number & Add Items");
 
-            let text = `*PHARMAGENIUS INVOICE*%0A------------------%0A`;
+            let text = `*PHARMAGENIUS DIGITAL INVOICE*%0A------------------%0A`;
             lastBillData.cart.forEach(i => {
-                text += `${i.name} x ${i.cartQty} = ₹${(i.sale * i.cartQty).toFixed(2)}%0A`;
+                text += `${i.name} [Qty: ${i.cartQty}] = ₹${(i.sale * i.cartQty).toFixed(2)}%0A`;
             });
-            text += `------------------%0A*Total: ${lastBillData.total}*%0A_Thank you for your visit!_`;
+            text += `------------------%0A*GRAND TOTAL: ${lastBillData.total}*%0A_Thank you for shopping!_%0A_Keep this for your records._`;
 
             window.open(`https://wa.me/91${phone}?text=${text}`, '_blank');
         }
