@@ -2,117 +2,220 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PharmaPro | Billing Hub</title>
-    <style>
-        :root { --blue: #1e3a8a; --green: #10b981; --gray: #f3f4f6; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: var(--gray); height: 100vh; }
-        
-        /* Sidebar */
-        nav { width: 250px; background: var(--blue); color: white; padding: 20px; flex-shrink: 0; }
-        nav h2 { border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
-        
-        /* Main Content */
-        main { flex-grow: 1; padding: 30px; overflow-y: auto; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
-        .btn-add { background: var(--blue); color: white; }
-        .btn-pay { background: var(--green); color: white; margin-top: 20px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; background: #f9fafb; padding: 10px; color: #6b7280; font-size: 0.8rem; }
-        td { padding: 12px; border-bottom: 1px solid #edf2f7; }
-        .total-box { font-size: 1.5rem; font-weight: bold; text-align: right; margin-top: 15px; }
-    </style>
+    <title>PharmaGenius Pro - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
-<body>
+<body class="bg-slate-50 min-h-screen font-sans">
 
-<nav>
-    <h2>💊 PharmaPro</h2>
-    <p>v3.0 Permanent Site</p>
-    <hr>
-    <p>Step 1: Add Stock<br>Step 2: Scan to Bill<br>Step 3: Show Tablet</p>
-</nav>
-
-<main>
-    <div class="grid">
-        <div class="card">
-            <h3>Inventory Entry</h3>
-            <input type="text" id="pName" placeholder="Medicine Name">
-            <input type="date" id="pExp" title="Expiry Date">
-            <input type="number" id="pMrp" placeholder="MRP (Price)">
-            <input type="number" id="pStock" placeholder="Current Stock Qty">
-            <button class="btn btn-add" onclick="addStock()">Add to Inventory & Clear</button>
+    <nav class="bg-blue-900 text-white p-4 shadow-xl flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl font-black tracking-tighter">💊 PHARMAGENIUS <span class="text-blue-400">PRO</span></h1>
         </div>
-
-        <div class="card">
-            <h3>Quick Billing</h3>
-            <input type="text" id="scanner" placeholder="Type name to sell..." oninput="searchAndSell()">
-            <table>
-                <thead><tr><th>Item</th><th>Expiry</th><th>Price</th></tr></thead>
-                <tbody id="billList"></tbody>
-            </table>
-            <div class="total-box" id="grandTotal">Total: ₹0.00</div>
-            <button class="btn btn-pay" onclick="syncWithTablet()">GENERATE TABLET LINK</button>
+        <div class="flex gap-8 items-center">
+            <button onclick="showTab('billing')" class="hover:text-yellow-400 font-bold transition">BILLING</button>
+            <button onclick="showTab('inventory')" class="hover:text-yellow-400 font-bold transition">STOCK ENTRY</button>
+            <div class="bg-blue-950 px-4 py-1 rounded-lg border border-blue-700 flex flex-col items-center">
+                <span class="text-[10px] uppercase text-blue-300">Tablet Sync PIN</span>
+                <span id="pinDisplay" class="text-xl font-black text-yellow-400 leading-none">----</span>
+            </div>
         </div>
-    </div>
+    </nav>
 
-    <div id="syncModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:white; padding:50px; text-align:center;">
-        <h1>Send to Tablet</h1>
-        <p>Open this URL on your tablet browser:</p>
-        <h2 id="tabletUrlDisplay" style="background:#333; padding:15px; word-break: break-all;"></h2>
-        <button class="btn" style="width:200px; background:red;" onclick="document.getElementById('syncModal').style.display='none'">Close</button>
-    </div>
-</main>
-
-<script>
-    let stock = JSON.parse(localStorage.getItem('pharmaData')) || [];
-    let bill = [];
-
-    function addStock() {
-        const item = {
-            name: document.getElementById('pName').value,
-            exp: document.getElementById('pExp').value,
-            mrp: document.getElementById('pMrp').value,
-            qty: document.getElementById('pStock').value
-        };
-        if(!item.name || !item.mrp) return alert("Fill Name and Price!");
-        stock.push(item);
-        localStorage.setItem('pharmaData', JSON.stringify(stock));
-        document.querySelectorAll('input').forEach(i => i.value = "");
-        alert("Stock Updated!");
-    }
-
-    function searchAndSell() {
-        let val = document.getElementById('scanner').value.toLowerCase();
-        let match = stock.find(s => s.name.toLowerCase() === val);
-        if(match) {
-            bill.push(match);
-            renderBill();
-            document.getElementById('scanner').value = "";
-        }
-    }
-
-    function renderBill() {
-        let total = 0;
-        document.getElementById('billList').innerHTML = bill.map(item => {
-            total += parseFloat(item.mrp);
-            return `<tr><td>${item.name}</td><td>${item.exp}</td><td>₹${item.mrp}</td></tr>`;
-        }).join('');
-        document.getElementById('grandTotal').innerText = `Total: ₹${total.toFixed(2)}`;
-    }
-
-    function syncWithTablet() {
-        let total = document.getElementById('grandTotal').innerText.split('₹')[1];
-        // This builds the link for your Netlify site
-        let baseUrl = window.location.href.replace('index.html', '').replace(/\/$/, "");
-        let finalUrl = `${baseUrl}/tablet.html?total=${total}`;
+    <div class="container mx-auto p-6 max-w-7xl">
         
-        document.getElementById('syncModal').style.display = 'block';
-        document.getElementById('tabletUrlDisplay').innerText = finalUrl;
-    }
-</script>
+        <div id="billing" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="relative mb-6">
+                        <input type="text" id="billSearch" placeholder="Scan Barcode or Type Medicine..." 
+                               class="w-full p-5 bg-slate-100 rounded-xl text-lg outline-none focus:ring-4 focus:ring-blue-500/20 border-transparent transition"
+                               onkeypress="handleBillSearch(event)">
+                        <span class="absolute right-4 top-5 text-slate-400">⏎ Enter to Add</span>
+                    </div>
+                    
+                    <div class="overflow-hidden rounded-xl border border-slate-100">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="p-4 text-slate-500 font-bold uppercase text-xs">Medicine</th>
+                                    <th class="p-4 text-slate-500 font-bold uppercase text-xs">Expiry</th>
+                                    <th class="p-4 text-slate-500 font-bold uppercase text-xs">Qty</th>
+                                    <th class="p-4 text-slate-500 font-bold uppercase text-xs">MRP</th>
+                                    <th class="p-4 text-slate-500 font-bold uppercase text-xs">Total</th>
+                                    <th class="p-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="billItems" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-2xl shadow-xl border border-blue-100 h-fit sticky top-24">
+                    <h3 class="font-bold mb-6 text-slate-400 uppercase text-xs tracking-widest">Payment Summary</h3>
+                    
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between text-slate-600"><span>Subtotal</span><span id="subTotal" class="font-semibold">₹0.00</span></div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Discount (%)</span>
+                            <input type="number" id="billDiscount" value="0" class="w-16 p-1 bg-slate-50 border rounded text-right font-bold" onchange="calcBill()">
+                        </div>
+                    </div>
+
+                    <div class="flex p-1 bg-slate-100 rounded-xl mb-8">
+                        <button onclick="setMode('CASH')" id="btnCash" class="flex-1 py-3 rounded-lg font-bold bg-white shadow-sm transition">CASH</button>
+                        <button onclick="setMode('UPI')" id="btnUpi" class="flex-1 py-3 rounded-lg font-bold text-slate-500 transition">UPI</button>
+                    </div>
+
+                    <div class="flex justify-between items-end mb-8">
+                        <span class="text-slate-400 font-bold">TOTAL</span>
+                        <span id="grandTotal" class="text-5xl font-black text-blue-700 leading-none">₹0.00</span>
+                    </div>
+
+                    <button onclick="completeSale()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-blue-700 transition active:scale-95">
+                        FINISH & SYNC
+                    </button>
+                    <p class="text-center text-[10px] text-slate-400 mt-4 italic">Changes are instantly pushed to Tablet</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="inventory" class="tab-content hidden bg-white p-10 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-2xl font-black mb-8 text-slate-800">Inventory Stock Management</h2>
+            <form id="stockForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Barcode / ID</label>
+                    <input type="text" id="invBarcode" placeholder="Scan or Type..." class="w-full p-4 border rounded-xl bg-slate-50 focus:bg-white transition" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Medicine Name</label>
+                    <input type="text" id="invName" placeholder="Paracetamol 500mg..." class="w-full p-4 border rounded-xl" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Expiry Date (Full)</label>
+                    <input type="date" id="invExpiry" class="w-full p-4 border rounded-xl" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Quantity</label>
+                    <input type="number" id="invQty" placeholder="0" class="w-full p-4 border rounded-xl" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Selling Price (MRP)</label>
+                    <input type="number" id="invSale" placeholder="₹0.00" class="w-full p-4 border rounded-xl text-blue-700 font-bold" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Cost Price</label>
+                    <input type="number" id="invCost" placeholder="₹0.00" class="w-full p-4 border rounded-xl">
+                </div>
+                <button type="submit" class="lg:col-span-3 bg-slate-900 text-white p-5 rounded-xl font-black text-lg hover:bg-black transition mt-4">
+                    SAVE TO STOCK DATABASE
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        let inventory = JSON.parse(localStorage.getItem('ph_inv')) || [];
+        let cart = [];
+        let paymentMode = "CASH";
+        
+        // Use a persistent PIN from LocalStorage so it doesn't change on refresh
+        let syncPin = localStorage.getItem('ph_pin') || Math.floor(1000 + Math.random() * 9000);
+        localStorage.setItem('ph_pin', syncPin);
+
+        const peer = new Peer('pharma-moranhat-' + syncPin);
+        let tabletConn = null;
+
+        peer.on('open', id => document.getElementById('pinDisplay').innerText = syncPin);
+        peer.on('connection', conn => { 
+            tabletConn = conn; 
+            syncToTablet(); 
+        });
+
+        function syncToTablet() {
+            if (tabletConn && tabletConn.open) {
+                tabletConn.send({ cart, total: document.getElementById('grandTotal').innerText, mode: paymentMode });
+            }
+        }
+
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        document.getElementById('stockForm').onsubmit = function(e) {
+            e.preventDefault();
+            const newItem = {
+                barcode: document.getElementById('invBarcode').value,
+                name: document.getElementById('invName').value,
+                expiry: document.getElementById('invExpiry').value,
+                qty: parseInt(document.getElementById('invQty').value),
+                sale: parseFloat(document.getElementById('invSale').value),
+                cost: parseFloat(document.getElementById('invCost').value) || 0
+            };
+            inventory.push(newItem);
+            localStorage.setItem('ph_inv', JSON.stringify(inventory));
+            alert(newItem.name + " added to stock!");
+            this.reset();
+        };
+
+        function handleBillSearch(e) {
+            if (e.key === 'Enter') {
+                const val = e.target.value.toLowerCase();
+                const prod = inventory.find(p => p.barcode === val || p.name.toLowerCase().includes(val));
+                if(prod) {
+                    cart.push({...prod, cartQty: 1});
+                    renderCart();
+                    e.target.value = '';
+                } else { alert("Not in stock!"); }
+            }
+        }
+
+        function renderCart() {
+            const tbody = document.getElementById('billItems');
+            tbody.innerHTML = cart.map((item, idx) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-bold text-slate-800">${item.name}</td>
+                    <td class="p-4"><span class="bg-red-50 text-red-600 px-2 py-1 rounded text-[10px] font-bold">${item.expiry}</span></td>
+                    <td class="p-4"><input type="number" value="${item.cartQty}" class="w-12 p-1 border rounded text-center" onchange="updateQty(${idx}, this.value)"></td>
+                    <td class="p-4 text-slate-500">₹${item.sale}</td>
+                    <td class="p-4 font-black text-slate-900">₹${(item.sale * item.cartQty).toFixed(2)}</td>
+                    <td class="p-4"><button onclick="removeItem(${idx})" class="text-slate-300 hover:text-red-500 transition text-xl">✕</button></td>
+                </tr>
+            `).join('');
+            calcBill();
+        }
+
+        function updateQty(idx, val) { cart[idx].cartQty = parseInt(val); renderCart(); }
+        function removeItem(idx) { cart.splice(idx, 1); renderCart(); }
+
+        function calcBill() {
+            let sub = cart.reduce((acc, i) => acc + (i.sale * i.cartQty), 0);
+            let disc = parseFloat(document.getElementById('billDiscount').value) || 0;
+            let grand = sub - (sub * (disc/100));
+            document.getElementById('subTotal').innerText = `₹${sub.toFixed(2)}`;
+            document.getElementById('grandTotal').innerText = `₹${grand.toFixed(2)}`;
+            syncToTablet();
+        }
+
+        function setMode(mode) {
+            paymentMode = mode;
+            document.getElementById('btnCash').className = mode === 'CASH' ? 'flex-1 py-3 rounded-lg font-bold bg-white shadow-sm' : 'flex-1 py-3 rounded-lg font-bold text-slate-500';
+            document.getElementById('btnUpi').className = mode === 'UPI' ? 'flex-1 py-3 rounded-lg font-bold bg-white shadow-sm' : 'flex-1 py-3 rounded-lg font-bold text-slate-500';
+            syncToTablet();
+        }
+
+        function completeSale() {
+            if(cart.length === 0) return;
+            cart.forEach(c => {
+                let item = inventory.find(i => i.barcode === c.barcode);
+                if(item) item.qty -= c.cartQty;
+            });
+            localStorage.setItem('ph_inv', JSON.stringify(inventory));
+            alert("Bill Finalized & Stock Deducted.");
+            cart = []; renderCart();
+        }
+    </script>
 </body>
 </html>
