@@ -26,24 +26,40 @@
         
         <div id="billing" class="tab-content active">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                    <input type="text" id="billSearch" placeholder="Scan or Search Medicine..." 
-                           class="w-full p-5 bg-slate-100 rounded-xl text-lg outline-none focus:ring-4 focus:ring-blue-500/20 mb-6"
-                           onkeypress="handleBillSearch(event)">
-                    
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
-                            <tr><th class="p-4">Item</th><th class="p-4">Exp</th><th class="p-4">Qty</th><th class="p-4">MRP</th><th class="p-4">Total</th><th class="p-4"></th></tr>
-                        </thead>
-                        <tbody id="billItems" class="divide-y divide-slate-100"></tbody>
-                    </table>
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                        <input type="text" id="billSearch" placeholder="Scan or Search Medicine..." 
+                               class="w-full p-5 bg-slate-100 rounded-xl text-lg outline-none focus:ring-4 focus:ring-blue-500/20 mb-6"
+                               onkeypress="handleBillSearch(event)">
+                        
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
+                                <tr><th class="p-4">Item</th><th class="p-4">Exp</th><th class="p-4">Qty</th><th class="p-4">MRP</th><th class="p-4">Total</th><th class="p-4"></th></tr>
+                            </thead>
+                            <tbody id="billItems" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                        <h3 class="text-blue-800 font-black uppercase text-xs mb-4">Today's Performance</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-4 rounded-xl shadow-sm">
+                                <p class="text-slate-500 text-xs font-bold">MEDICINES SOLD</p>
+                                <p id="todayQty" class="text-3xl font-black text-slate-800">0</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm">
+                                <p class="text-slate-500 text-xs font-bold">TOTAL REVENUE</p>
+                                <p id="todayRev" class="text-3xl font-black text-green-600">₹0.00</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="bg-white p-8 rounded-2xl shadow-xl border border-blue-100 h-fit sticky top-24">
                     <h3 class="font-bold mb-6 text-slate-400 uppercase text-xs">Checkout Summary</h3>
-                    <div class="flex justify-between mb-4 text-xl"><span>Subtotal:</span><span id="subTotal">₹0.00</span></div>
+                    <div class="flex justify-between mb-4 text-xl font-bold italic text-slate-400"><span>Subtotal:</span><span id="subTotal">₹0.00</span></div>
                     <div class="flex justify-between items-center mb-6">
-                        <span>Disc (%):</span>
+                        <span class="font-bold">Disc (%):</span>
                         <input type="number" id="billDiscount" value="0" class="w-20 p-2 border rounded text-right font-bold" onchange="calcBill()">
                     </div>
                     <div class="flex p-1 bg-gray-100 rounded-xl mb-6">
@@ -53,8 +69,8 @@
                     <div class="text-center mb-8">
                         <span class="text-5xl font-black text-blue-700" id="grandTotal">₹0.00</span>
                     </div>
-                    <button onclick="completeSale()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-blue-700 active:scale-95 transition">
-                        FINISH & SYNC
+                    <button onclick="completeSale()" class="w-full bg-green-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-green-700 transition">
+                        FINISH & CLEAR
                     </button>
                 </div>
             </div>
@@ -87,6 +103,7 @@
 
     <script>
         let inventory = JSON.parse(localStorage.getItem('ph_inv')) || [];
+        let salesHistory = JSON.parse(localStorage.getItem('ph_sales_history')) || [];
         let cart = [];
         let paymentMode = "CASH";
         let syncPin = localStorage.getItem('ph_pin') || Math.floor(1000 + Math.random() * 9000);
@@ -98,9 +115,10 @@
         peer.on('open', id => document.getElementById('pinDisplay').innerText = syncPin);
         peer.on('connection', conn => { tabletConn = conn; syncToTablet(); });
 
-        function syncToTablet(finalize = false) {
+        function syncToTablet() {
             if (tabletConn && tabletConn.open) {
-                tabletConn.send({ cart, total: document.getElementById('grandTotal').innerText, mode: paymentMode, finalize: finalize });
+                // WhatsApp area will show on tablet as long as cart has items
+                tabletConn.send({ cart, total: document.getElementById('grandTotal').innerText, mode: paymentMode, active: cart.length > 0 });
             }
         }
 
@@ -108,9 +126,20 @@
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
             if(id === 'inventory') renderInventoryList();
+            updateDailyStats();
         }
 
-        // STOCK EDIT & SAVE LOGIC
+        function updateDailyStats() {
+            const today = new Date().toLocaleDateString();
+            const todaySales = salesHistory.filter(s => s.date === today);
+            const totalQty = todaySales.reduce((acc, s) => acc + s.itemsCount, 0);
+            const totalRev = todaySales.reduce((acc, s) => acc + s.amount, 0);
+            
+            document.getElementById('todayQty').innerText = totalQty;
+            document.getElementById('todayRev').innerText = "₹" + totalRev.toFixed(2);
+        }
+
+        // STOCK LOGIC
         document.getElementById('stockForm').onsubmit = function(e) {
             e.preventDefault();
             const idx = parseInt(document.getElementById('editIdx').value);
@@ -121,28 +150,16 @@
                 qty: parseInt(document.getElementById('invQty').value),
                 sale: parseFloat(document.getElementById('invSale').value)
             };
-
-            if(idx === -1) inventory.push(newItem);
-            else inventory[idx] = newItem;
-
+            if(idx === -1) inventory.push(newItem); else inventory[idx] = newItem;
             localStorage.setItem('ph_inv', JSON.stringify(inventory));
             this.reset();
             document.getElementById('editIdx').value = "-1";
-            document.getElementById('formTitle').innerText = "Add New Stock";
             renderInventoryList();
-            alert("Inventory Updated!");
         };
 
         function renderInventoryList() {
             document.getElementById('inventoryList').innerHTML = inventory.map((item, idx) => `
-                <tr>
-                    <td class="p-4 text-xs font-mono">${item.barcode}</td>
-                    <td class="p-4 font-bold">${item.name}</td>
-                    <td class="p-4 text-red-500">${item.expiry}</td>
-                    <td class="p-4 font-bold">${item.qty}</td>
-                    <td class="p-4 text-blue-600 font-bold">₹${item.sale}</td>
-                    <td class="p-4"><button onclick="editItem(${idx})" class="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg text-xs font-bold">EDIT</button></td>
-                </tr>
+                <tr><td class="p-4 font-mono text-xs">${item.barcode}</td><td class="p-4 font-bold">${item.name}</td><td class="p-4">${item.expiry}</td><td class="p-4 font-bold">${item.qty}</td><td class="p-4 font-bold text-blue-600">₹${item.sale}</td><td class="p-4"><button onclick="editItem(${idx})" class="bg-amber-100 text-amber-700 px-3 py-1 rounded font-bold text-xs">EDIT</button></td></tr>
             `).join('');
         }
 
@@ -155,10 +172,9 @@
             document.getElementById('invSale').value = item.sale;
             document.getElementById('editIdx').value = idx;
             document.getElementById('formTitle').innerText = "Editing: " + item.name;
-            window.scrollTo(0,0);
         }
 
-        // BILLING LOGIC (STAYED SAME AS PREVIOUS)
+        // BILLING LOGIC
         function handleBillSearch(e) {
             if (e.key === 'Enter') {
                 const val = e.target.value.toLowerCase();
@@ -169,14 +185,7 @@
 
         function renderCart() {
             document.getElementById('billItems').innerHTML = cart.map((item, idx) => `
-                <tr>
-                    <td class="p-4 font-bold">${item.name}</td>
-                    <td class="p-4 text-xs">${item.expiry}</td>
-                    <td class="p-4"><input type="number" value="${item.cartQty}" class="w-12 border rounded text-center" onchange="updateQty(${idx}, this.value)"></td>
-                    <td class="p-4">₹${item.sale}</td>
-                    <td class="p-4 font-black">₹${(item.sale * item.cartQty).toFixed(2)}</td>
-                    <td class="p-4"><button onclick="removeItem(${idx})" class="text-red-400">✕</button></td>
-                </tr>
+                <tr class="font-bold text-slate-700"><td class="p-4">${item.name}</td><td class="p-4 text-xs text-red-500">${item.expiry}</td><td class="p-4"><input type="number" value="${item.cartQty}" class="w-12 border rounded text-center" onchange="updateQty(${idx}, this.value)"></td><td class="p-4">₹${item.sale}</td><td class="p-4">₹${(item.sale * item.cartQty).toFixed(2)}</td><td class="p-4"><button onclick="removeItem(${idx})" class="text-red-300">✕</button></td></tr>
             `).join('');
             calcBill();
         }
@@ -202,15 +211,33 @@
 
         function completeSale() {
             if(cart.length === 0) return;
+            const finalAmt = parseFloat(document.getElementById('grandTotal').innerText.replace('₹',''));
+            const finalQty = cart.reduce((acc, i) => acc + i.cartQty, 0);
+
+            // Update Stock
             cart.forEach(c => {
                 let item = inventory.find(i => i.barcode === c.barcode);
                 if(item) item.qty -= c.cartQty;
             });
+
+            // Log Sale for Daily Tracker
+            salesHistory.push({
+                date: new Date().toLocaleDateString(),
+                amount: finalAmt,
+                itemsCount: finalQty
+            });
+
             localStorage.setItem('ph_inv', JSON.stringify(inventory));
-            syncToTablet(true); // "True" tells tablet to show WhatsApp button
-            alert("Bill Finalized!");
-            cart = []; renderCart();
+            localStorage.setItem('ph_sales_history', JSON.stringify(salesHistory));
+            
+            alert("Bill Finished!");
+            cart = []; 
+            renderCart();
+            updateDailyStats();
+            syncToTablet();
         }
+        
+        updateDailyStats();
     </script>
 </body>
 </html>
