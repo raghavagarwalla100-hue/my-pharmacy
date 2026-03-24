@@ -3,43 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Payment Display</title>
+    <title>Customer Payment Display - PharmaGenius Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @keyframes pulse-border {
+            0% { border-color: rgba(255, 255, 255, 0.5); }
+            50% { border-color: rgba(255, 255, 255, 1); }
+            100% { border-color: rgba(255, 255, 255, 0.5); }
+        }
+        .pulse-btn { animation: pulse-border 2s infinite; }
+    </style>
 </head>
-<body class="bg-slate-900 h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-900 h-screen flex flex-col items-center justify-center p-4 font-sans overflow-hidden">
     
-    <div id="pairing" class="bg-white p-12 rounded-[40px] shadow-2xl text-center max-w-md w-full">
-        <h1 class="text-3xl font-black text-slate-800 mb-2">Tablet Link</h1>
-        <input type="number" id="pin" placeholder="0000" class="text-6xl w-full text-center font-black border-b-8 border-blue-600 mb-10 outline-none text-blue-600">
-        <button onclick="connect()" class="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl">CONNECT</button>
+    <div id="pairing" class="bg-white p-12 rounded-[40px] shadow-2xl text-center max-w-md w-full transition-all duration-500">
+        <div class="mb-6 text-6xl">🔗</div>
+        <h1 class="text-3xl font-black text-slate-800 mb-2 uppercase tracking-tighter">Link Tablet</h1>
+        <p class="text-slate-400 mb-8 font-bold">Enter PIN from Laptop Dashboard</p>
+        <input type="number" id="pin" placeholder="0000" class="text-6xl w-full text-center font-black border-b-8 border-blue-600 mb-10 outline-none text-blue-600 pb-2">
+        <button onclick="connect()" class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-all">CONNECT NOW</button>
     </div>
 
-    <div id="display" class="hidden w-full h-full max-w-7xl gap-6 animate-in fade-in zoom-in duration-300">
-        <div class="w-1/2 bg-white rounded-[40px] p-10 shadow-2xl flex flex-col">
-            <h2 class="text-3xl font-black text-slate-800 mb-8">Bill Items</h2>
-            <div id="items" class="space-y-4 overflow-y-auto flex-grow pr-4"></div>
+    <div id="display" class="hidden w-full h-full max-w-7xl gap-8 animate-in fade-in zoom-in duration-500">
+        
+        <div class="w-5/12 bg-white rounded-[50px] p-10 shadow-2xl flex flex-col border-8 border-slate-100">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Your Order</h2>
+                <span class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full font-black text-sm uppercase">Live Bill</span>
+            </div>
             
-            <div id="whatsapp-area" class="mt-6 p-6 bg-green-50 rounded-3xl border-2 border-green-200 opacity-20 pointer-events-none transition-all duration-500">
-                <p class="font-bold text-green-800 mb-2">WhatsApp Digital Bill</p>
-                <div class="flex gap-2">
-                    <input type="number" id="custPhone" placeholder="Mobile Number" class="flex-grow p-4 rounded-xl border-none shadow-inner text-xl font-bold">
-                    <button onclick="sendWhatsApp()" class="bg-green-600 text-white px-8 rounded-xl font-black">SEND</button>
+            <div id="items" class="space-y-4 overflow-y-auto flex-grow pr-4 custom-scrollbar">
+                <div class="text-center py-20 text-slate-300">
+                    <p class="text-6xl mb-4">🛒</p>
+                    <p class="font-bold">Waiting for medicines to be scanned...</p>
+                </div>
+            </div>
+            
+            <div id="whatsapp-area" class="mt-8 p-6 bg-green-50 rounded-[35px] border-2 border-green-200 opacity-20 pointer-events-none transition-all duration-500">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-2xl">📱</span>
+                    <p class="font-black text-green-800 uppercase text-sm tracking-widest">Get Digital Bill</p>
+                </div>
+                <div class="flex gap-3">
+                    <input type="number" id="custPhone" placeholder="WhatsApp Number" class="flex-grow p-5 rounded-2xl border-none shadow-inner text-xl font-bold focus:ring-2 focus:ring-green-400 outline-none">
+                    <button onclick="sendWhatsApp()" class="bg-green-600 hover:bg-green-700 text-white px-8 rounded-2xl font-black text-lg transition-colors">SEND</button>
                 </div>
             </div>
         </div>
 
-        <div class="w-1/2 flex flex-col justify-center items-center bg-blue-600 rounded-[40px] shadow-2xl p-12 text-white">
-            <p class="text-blue-200 text-xl font-bold uppercase tracking-widest">Total Amount</p>
-            <div id="total" class="text-9xl font-black mb-10">₹0</div>
+        <div class="w-7/12 flex flex-col justify-center items-center bg-blue-600 rounded-[50px] shadow-2xl p-12 text-white text-center relative overflow-hidden">
+            <div class="absolute -top-20 -right-20 w-64 h-64 bg-blue-500 rounded-full opacity-50"></div>
             
-            <div id="qr-container" class="hidden bg-white p-6 rounded-[30px] shadow-xl animate-bounce">
+            <p class="text-blue-200 text-2xl font-bold uppercase tracking-[0.3em] mb-4 z-10">Grand Total</p>
+            <div id="total" class="text-[12rem] font-black leading-none mb-12 z-10 drop-shadow-2xl text-white">₹0</div>
+            
+            <div id="qr-container" class="hidden bg-white p-8 rounded-[40px] shadow-2xl animate-bounce z-10">
                 <div id="qrcode"></div>
-                <p class="text-slate-800 font-black mt-4 text-[10px] text-center uppercase tracking-tighter">vyapar.172721135496@hdfcbank</p>
+                <p class="text-slate-800 font-black mt-6 text-xs uppercase tracking-widest border-t pt-4">Scan with any UPI App</p>
             </div>
 
-            <div id="cash-msg" class="hidden bg-blue-500 p-10 rounded-[30px] border-4 border-blue-400 font-black text-2xl uppercase">Hand Over Cash</div>
+            <button id="cash-btn" onclick="triggerHandover()" class="hidden pulse-btn bg-yellow-400 hover:bg-yellow-300 text-blue-900 px-12 py-10 rounded-[40px] border-8 border-blue-700 font-black text-4xl uppercase shadow-[0_20px_50px_rgba(0,0,0,0.3)] transform active:scale-90 transition-all z-20">
+                Hand Over Cash 💵
+                <span class="block text-sm mt-2 opacity-70 italic font-bold text-blue-800">Tap to finish and get receipt</span>
+            </button>
         </div>
     </div>
 
@@ -48,40 +76,57 @@
         let conn;
         let lastBillData = null;
 
+        // Connect to Laptop
         function connect() {
             const pin = document.getElementById('pin').value;
+            if(!pin) return alert("Enter PIN");
+            
             conn = peer.connect('pharma-moranhat-' + pin);
+            
             conn.on('open', () => {
-                document.getElementById('pairing').classList.add('hidden');
-                document.getElementById('display').classList.remove('hidden');
-                document.getElementById('display').classList.add('flex');
+                document.getElementById('pairing').classList.add('scale-90', 'opacity-0');
+                setTimeout(() => {
+                    document.getElementById('pairing').classList.add('hidden');
+                    document.getElementById('display').classList.remove('hidden');
+                    document.getElementById('display').classList.add('flex');
+                }, 500);
             });
 
             conn.on('data', data => {
-                lastBillData = data;
-                const itemsDiv = document.getElementById('items');
-                const whatsappBox = document.getElementById('whatsapp-area');
-                
-                // Show items
-                itemsDiv.innerHTML = data.cart.map(i => `
-                    <div class="flex justify-between items-center bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                        <div><p class="text-2xl font-black text-slate-800">${i.name}</p><p class="text-sm font-bold text-slate-400">Qty: ${i.cartQty}</p></div>
-                        <b class="text-3xl text-blue-600 font-black">₹${(i.sale * i.cartQty).toFixed(2)}</b>
-                    </div>
-                `).join('');
-
-                // Toggle WhatsApp Area based on items in cart
-                if(data.cart.length > 0) {
-                    whatsappBox.classList.remove('opacity-20', 'pointer-events-none');
-                } else {
-                    whatsappBox.classList.add('opacity-20', 'pointer-events-none');
+                // If Laptop sends a refresh command after finishing sale
+                if(data.type === 'REFRESH') {
+                    document.body.classList.add('opacity-0');
+                    setTimeout(() => { location.reload(); }, 500);
+                    return;
                 }
 
+                lastBillData = data;
+                
+                // Update Items List
+                if(data.cart.length > 0) {
+                    document.getElementById('items').innerHTML = data.cart.map(i => `
+                        <div class="flex justify-between items-center bg-slate-50 p-6 rounded-3xl border-2 border-slate-100 hover:border-blue-200 transition-colors">
+                            <div>
+                                <p class="text-2xl font-black text-slate-800">${i.name}</p>
+                                <p class="text-sm font-black text-blue-500 uppercase">Quantity: ${i.cartQty}</p>
+                            </div>
+                            <b class="text-3xl text-slate-900 font-black tracking-tighter">₹${(i.sale * i.cartQty).toFixed(2)}</b>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('whatsapp-area').classList.remove('opacity-20', 'pointer-events-none');
+                } else {
+                    document.getElementById('items').innerHTML = `<div class="text-center py-20 text-slate-300"><p class="text-6xl mb-4">🛒</p><p class="font-bold">Ready for next customer...</p></div>`;
+                    document.getElementById('whatsapp-area').classList.add('opacity-20', 'pointer-events-none');
+                }
+
+                // Update Total
                 document.getElementById('total').innerText = data.total;
                 const val = parseFloat(data.total.replace('₹',''));
                 
+                // Toggle Payment Views
                 document.getElementById('qr-container').classList.add('hidden');
-                document.getElementById('cash-msg').classList.add('hidden');
+                document.getElementById('cash-btn').classList.add('hidden');
 
                 if(val > 0) {
                     if(data.mode === 'UPI') {
@@ -89,22 +134,43 @@
                         document.getElementById('qrcode').innerHTML = "";
                         new QRCode(document.getElementById('qrcode'), {
                             text: `upi://pay?pa=vyapar.172721135496@hdfcbank&pn=Pharmacy&am=${val}&cu=INR`,
-                            width: 260, height: 260
+                            width: 280, height: 280,
+                            colorDark: "#1e3a8a",
+                            correctLevel: QRCode.CorrectLevel.H
                         });
-                    } else { document.getElementById('cash-msg').classList.remove('hidden'); }
+                    } else { 
+                        document.getElementById('cash-btn').classList.remove('hidden'); 
+                    }
                 }
             });
         }
 
+        // Trigger Laptop Sale Process
+        function triggerHandover() {
+            if (conn && conn.open) {
+                // Shake button for feedback
+                const btn = document.getElementById('cash-btn');
+                btn.innerText = "Processing...";
+                btn.classList.add('bg-slate-400');
+                
+                // Send command back to Laptop
+                conn.send({ command: 'COMPLETE_SALE' });
+            }
+        }
+
+        // WhatsApp Messaging
         function sendWhatsApp() {
             const phone = document.getElementById('custPhone').value;
-            if(!phone || !lastBillData || lastBillData.cart.length === 0) return alert("Enter Number & Add Items");
+            if(!phone || !lastBillData || lastBillData.cart.length === 0) {
+                alert("Enter number and add items first!");
+                return;
+            }
 
-            let text = `*PHARMAGENIUS DIGITAL INVOICE*%0A------------------%0A`;
+            let text = `*PHARMAGENIUS MORANHAT*%0A*DIGITAL INVOICE*%0A---------------------------%0A`;
             lastBillData.cart.forEach(i => {
-                text += `${i.name} [Qty: ${i.cartQty}] = ₹${(i.sale * i.cartQty).toFixed(2)}%0A`;
+                text += `• ${i.name}%0A  ${i.cartQty} units x ₹${i.sale} = ₹${(i.sale * i.cartQty).toFixed(2)}%0A`;
             });
-            text += `------------------%0A*GRAND TOTAL: ${lastBillData.total}*%0A_Thank you for shopping!_%0A_Keep this for your records._`;
+            text += `---------------------------%0A*GRAND TOTAL: ${lastBillData.total}*%0A%0A_Thank you for your visit!_%0A_Get well soon!_`;
 
             window.open(`https://wa.me/91${phone}?text=${text}`, '_blank');
         }
