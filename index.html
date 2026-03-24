@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PharmaGenius Pro - Admin Dashboard</title>
+    <title>PharmaGenius Pro - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
@@ -14,14 +14,13 @@
             <button onclick="showTab('billing')" class="hover:text-yellow-400 font-bold transition">BILLING</button>
             <button onclick="showTab('inventory')" class="hover:text-yellow-400 font-bold transition">STOCK</button>
             <div class="bg-blue-950 px-4 py-1 rounded-lg border border-blue-700 text-center">
-                <span class="text-[10px] text-blue-300 block">TABLET PIN</span>
+                <span class="text-[10px] text-blue-300 block uppercase">Tablet PIN</span>
                 <span id="pinDisplay" class="text-xl font-black text-yellow-400 leading-none">----</span>
             </div>
         </div>
     </nav>
 
     <div class="container mx-auto p-6 max-w-7xl">
-        
         <div id="billing" class="tab-content active space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 space-y-6">
@@ -29,30 +28,27 @@
                         <input type="text" id="billSearch" placeholder="Scan Barcode or Type Medicine..." 
                                class="w-full p-4 bg-slate-100 rounded-xl text-lg outline-none focus:ring-4 focus:ring-blue-500/20 mb-4"
                                onkeypress="handleBillSearch(event)">
-                        
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead class="text-xs font-bold text-slate-400 uppercase border-b">
-                                    <tr><th class="p-4">Item</th><th class="p-4 text-center">Qty</th><th class="p-4">MRP</th><th class="p-4">Total</th><th></th></tr>
-                                </thead>
-                                <tbody id="billItems" class="divide-y"></tbody>
-                            </table>
-                        </div>
+                        <table class="w-full text-left">
+                            <thead class="text-xs font-bold text-slate-400 uppercase border-b">
+                                <tr><th class="p-4">Item</th><th class="p-4 text-center">Qty</th><th class="p-4">MRP</th><th class="p-4">Total</th><th></th></tr>
+                            </thead>
+                            <tbody id="billItems" class="divide-y"></tbody>
+                        </table>
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-black text-slate-800 uppercase tracking-tight">Today's Sales History</h3>
+                            <h3 class="font-black text-slate-800 uppercase tracking-tight text-sm">Today's Sales History</h3>
                             <div class="text-right">
-                                <span class="text-xs font-bold text-slate-400 block uppercase">Total Revenue</span>
+                                <span class="text-[10px] font-bold text-slate-400 block uppercase">Total Revenue</span>
                                 <span id="todayRev" class="text-2xl font-black text-green-600">₹0.00</span>
                             </div>
                         </div>
                         <div class="max-h-64 overflow-y-auto border rounded-xl">
-                            <table class="w-full text-sm">
+                            <table class="w-full text-sm text-center">
                                 <thead class="bg-slate-50 sticky top-0">
-                                    <tr class="text-slate-500 font-bold">
-                                        <th class="p-3 text-left">Time</th><th class="p-3 text-left">Items</th><th class="p-3">Amount</th><th class="p-3">Action</th>
+                                    <tr class="text-slate-500 font-bold border-b">
+                                        <th class="p-3 text-left">Time</th><th class="p-3 text-left">Summary</th><th class="p-3">Amount</th><th class="p-3">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="salesHistoryList" class="divide-y text-slate-600"></tbody>
@@ -62,36 +58,49 @@
                 </div>
 
                 <div class="bg-white p-8 rounded-2xl shadow-xl border border-blue-100 h-fit sticky top-24">
-                    <h3 class="font-bold mb-6 text-slate-400 uppercase text-xs">Final Adjustment</h3>
-                    
+                    <h3 class="font-bold mb-6 text-slate-400 uppercase text-xs">Checkout Summary</h3>
                     <div class="space-y-4 mb-8">
                         <div class="flex justify-between text-slate-500"><span>Subtotal</span><span id="subTotal">₹0.00</span></div>
-                        
                         <div class="flex justify-between items-center">
                             <span class="font-bold">Discount (%)</span>
                             <input type="number" id="billDiscount" value="0" class="w-20 p-2 border rounded-lg text-right font-bold text-blue-600" oninput="calcBill()">
                         </div>
-
                         <div class="flex justify-between items-center pt-4 border-t">
                             <span class="font-black text-slate-800">Final Bill (₹)</span>
-                            <input type="number" id="editableGrandTotal" class="w-28 p-2 bg-blue-50 border-2 border-blue-200 rounded-lg text-right font-black text-blue-700 text-xl" oninput="manualTotalEdit()">
+                            <input type="number" id="editableGrandTotal" class="w-28 p-2 bg-blue-50 border-2 border-blue-200 rounded-lg text-right font-black text-blue-700 text-xl" oninput="syncToTablet()">
                         </div>
                     </div>
-
                     <div class="flex p-1 bg-gray-100 rounded-xl mb-6">
                         <button onclick="setMode('CASH')" id="btnCash" class="flex-1 py-3 rounded-lg font-bold bg-white shadow transition">CASH</button>
                         <button onclick="setMode('UPI')" id="btnUpi" class="flex-1 py-3 rounded-lg font-bold text-slate-500 transition">UPI</button>
                     </div>
-
-                    <button onclick="completeSale()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-blue-700 active:scale-95 transition">
-                        FINISH & CLEAR
-                    </button>
+                    <button onclick="completeSale()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:bg-blue-700 active:scale-95 transition">FINISH & CLEAR</button>
                 </div>
             </div>
         </div>
 
-        <div id="inventory" class="tab-content hidden">
+        <div id="inventory" class="tab-content hidden space-y-8">
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                <h2 id="formTitle" class="text-xl font-black mb-6 text-slate-800 uppercase tracking-tight">Manage Inventory</h2>
+                <form id="stockForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <input type="hidden" id="editIdx" value="-1">
+                    <input type="text" id="invBarcode" placeholder="Barcode" class="p-3 border rounded-xl bg-slate-50" required>
+                    <input type="text" id="invName" placeholder="Medicine Name" class="p-3 border rounded-xl" required>
+                    <input type="date" id="invExpiry" class="p-3 border rounded-xl" required>
+                    <input type="number" id="invQty" placeholder="Qty" class="p-3 border rounded-xl" required>
+                    <input type="number" id="invSale" placeholder="MRP" class="p-3 border rounded-xl" required>
+                    <button type="submit" id="saveBtn" class="bg-blue-600 text-white p-3 rounded-xl font-bold">SAVE STOCK</button>
+                </form>
             </div>
+            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-800 text-white text-xs uppercase">
+                        <tr><th class="p-4">Barcode</th><th class="p-4">Name</th><th class="p-4">Expiry</th><th class="p-4">Stock</th><th class="p-4">MRP</th><th class="p-4">Action</th></tr>
+                    </thead>
+                    <tbody id="inventoryList" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -106,23 +115,63 @@
         let tabletConn = null;
 
         peer.on('open', id => document.getElementById('pinDisplay').innerText = syncPin);
-        peer.on('connection', conn => { tabletConn = conn; syncToTablet(); });
+        
+        peer.on('connection', conn => { 
+            tabletConn = conn; 
+            syncToTablet(); 
+            conn.on('data', data => {
+                if(data.command === 'COMPLETE_SALE') completeSale();
+            });
+        });
 
         function syncToTablet() {
             if (tabletConn && tabletConn.open) {
-                const totalText = "₹" + document.getElementById('editableGrandTotal').value;
-                tabletConn.send({ cart, total: totalText, mode: paymentMode, active: cart.length > 0 });
+                const totalVal = document.getElementById('editableGrandTotal').value;
+                tabletConn.send({ cart, total: "₹" + totalVal, mode: paymentMode });
             }
         }
 
-        // TAB NAVIGATION
         function showTab(id) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
+            if(id === 'inventory') renderInventoryList();
             if(id === 'billing') updateSalesTable();
         }
 
-        // BILLING & EDIT LOGIC
+        document.getElementById('stockForm').onsubmit = function(e) {
+            e.preventDefault();
+            const idx = parseInt(document.getElementById('editIdx').value);
+            const newItem = {
+                barcode: document.getElementById('invBarcode').value,
+                name: document.getElementById('invName').value,
+                expiry: document.getElementById('invExpiry').value,
+                qty: parseInt(document.getElementById('invQty').value),
+                sale: parseFloat(document.getElementById('invSale').value)
+            };
+            if(idx === -1) inventory.push(newItem); else inventory[idx] = newItem;
+            localStorage.setItem('ph_inv', JSON.stringify(inventory));
+            this.reset();
+            document.getElementById('editIdx').value = "-1";
+            renderInventoryList();
+        };
+
+        function renderInventoryList() {
+            document.getElementById('inventoryList').innerHTML = inventory.map((item, idx) => `
+                <tr class="hover:bg-slate-50"><td class="p-4 font-mono text-xs">${item.barcode}</td><td class="p-4 font-bold">${item.name}</td><td class="p-4">${item.expiry}</td><td class="p-4 font-bold">${item.qty}</td><td class="p-4 font-bold text-blue-600">₹${item.sale}</td><td class="p-4"><button onclick="editItem(${idx})" class="text-blue-600 font-bold hover:underline">Edit</button></td></tr>
+            `).join('');
+        }
+
+        function editItem(idx) {
+            const item = inventory[idx];
+            document.getElementById('invBarcode').value = item.barcode;
+            document.getElementById('invName').value = item.name;
+            document.getElementById('invExpiry').value = item.expiry;
+            document.getElementById('invQty').value = item.qty;
+            document.getElementById('invSale').value = item.sale;
+            document.getElementById('editIdx').value = idx;
+            showTab('inventory');
+        }
+
         function handleBillSearch(e) {
             if (e.key === 'Enter') {
                 const val = e.target.value.toLowerCase();
@@ -133,12 +182,12 @@
 
         function renderCart() {
             document.getElementById('billItems').innerHTML = cart.map((item, idx) => `
-                <tr class="font-bold">
+                <tr class="font-bold border-b">
                     <td class="p-4">${item.name}</td>
-                    <td class="p-4"><input type="number" value="${item.cartQty}" class="w-12 border rounded text-center" onchange="updateQty(${idx}, this.value)"></td>
-                    <td class="p-4 text-slate-400">₹${item.sale}</td>
+                    <td class="p-4 text-center"><input type="number" value="${item.cartQty}" class="w-12 border rounded text-center" onchange="updateQty(${idx}, this.value)"></td>
+                    <td class="p-4">₹${item.sale}</td>
                     <td class="p-4 text-blue-600">₹${(item.sale * item.cartQty).toFixed(2)}</td>
-                    <td class="p-4"><button onclick="removeItem(${idx})" class="text-red-300">✕</button></td>
+                    <td class="p-4 text-right"><button onclick="removeItem(${idx})" class="text-red-300">✕</button></td>
                 </tr>
             `).join('');
             calcBill();
@@ -156,11 +205,6 @@
             syncToTablet();
         }
 
-        function manualTotalEdit() {
-            // Allows the user to manually change the final amount (rounding off)
-            syncToTablet();
-        }
-
         function setMode(mode) {
             paymentMode = mode;
             document.getElementById('btnCash').className = mode === 'CASH' ? 'flex-1 py-3 rounded-lg font-bold bg-white shadow' : 'flex-1 py-3 rounded-lg font-bold text-slate-500';
@@ -171,69 +215,39 @@
         function completeSale() {
             if(cart.length === 0) return;
             const finalAmt = parseFloat(document.getElementById('editableGrandTotal').value);
-            
             const saleRecord = {
                 id: Date.now(),
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
                 date: new Date().toLocaleDateString(),
-                items: cart.map(i => `${i.name} (${i.cartQty})`).join(', '),
-                amount: finalAmt,
-                itemsRaw: [...cart]
+                summary: cart.map(i => `${i.name}(${i.cartQty})`).join(', '),
+                amount: finalAmt
             };
-
             salesHistory.unshift(saleRecord);
-            localStorage.setItem('ph_sales', JSON.stringify(salesHistory));
-
-            // Reduce stock
             cart.forEach(c => {
                 let item = inventory.find(i => i.barcode === c.barcode);
                 if(item) item.qty -= c.cartQty;
             });
             localStorage.setItem('ph_inv', JSON.stringify(inventory));
-
-            alert("Sale Completed!");
-            cart = []; renderCart();
-            updateSalesTable();
+            localStorage.setItem('ph_sales', JSON.stringify(salesHistory));
+            if (tabletConn && tabletConn.open) tabletConn.send({ type: 'REFRESH' });
+            location.reload(); 
         }
 
-        // SALES PERFORMANCE EDITING
         function updateSalesTable() {
             const today = new Date().toLocaleDateString();
             const todaySales = salesHistory.filter(s => s.date === today);
-            const totalRev = todaySales.reduce((acc, s) => acc + s.amount, 0);
-
-            document.getElementById('todayRev').innerText = "₹" + totalRev.toFixed(2);
-            document.getElementById('salesHistoryList').innerHTML = todaySales.map((s, idx) => `
-                <tr>
-                    <td class="p-3">${s.time}</td>
-                    <td class="p-3 truncate max-w-[150px]">${s.items}</td>
-                    <td class="p-3 font-bold text-blue-600">₹${s.amount}</td>
-                    <td class="p-3 flex gap-2">
-                        <button onclick="editPastSale(${s.id})" class="text-blue-500 font-bold hover:underline">Edit</button>
-                        <button onclick="deleteSale(${s.id})" class="text-red-400 font-bold hover:underline">Delete</button>
-                    </td>
-                </tr>
+            document.getElementById('todayRev').innerText = "₹" + todaySales.reduce((acc, s) => acc + s.amount, 0).toFixed(2);
+            document.getElementById('salesHistoryList').innerHTML = todaySales.map(s => `
+                <tr class="border-b"><td class="p-3">${s.time}</td><td class="p-3 text-left truncate max-w-xs">${s.summary}</td><td class="p-3 font-bold text-blue-600">₹${s.amount}</td><td class="p-3 flex justify-center gap-2"><button onclick="editPastSale(${s.id})" class="text-blue-500 hover:underline">Edit</button><button onclick="deleteSale(${s.id})" class="text-red-400 hover:underline">Delete</button></td></tr>
             `).join('');
         }
 
-        function deleteSale(id) {
-            if(confirm("Are you sure you want to delete this sale? This will NOT add stock back (do it manually).")) {
-                salesHistory = salesHistory.filter(s => s.id !== id);
-                localStorage.setItem('ph_sales', JSON.stringify(salesHistory));
-                updateSalesTable();
-            }
+        function deleteSale(id) { if(confirm("Delete this sale?")) { salesHistory = salesHistory.filter(s => s.id !== id); localStorage.setItem('ph_sales', JSON.stringify(salesHistory)); updateSalesTable(); } }
+        function editPastSale(id) { 
+            const s = salesHistory.find(x => x.id === id);
+            const n = prompt("Enter new amount:", s.amount);
+            if(n) { s.amount = parseFloat(n); localStorage.setItem('ph_sales', JSON.stringify(salesHistory)); updateSalesTable(); }
         }
-
-        function editPastSale(id) {
-            const sale = salesHistory.find(s => s.id === id);
-            const newAmt = prompt("Enter new total for this sale:", sale.amount);
-            if(newAmt !== null) {
-                sale.amount = parseFloat(newAmt);
-                localStorage.setItem('ph_sales', JSON.stringify(salesHistory));
-                updateSalesTable();
-            }
-        }
-
         updateSalesTable();
     </script>
 </body>
