@@ -2,40 +2,118 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Payment Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Payment Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; background: #000; color: white; margin: 0; padding-top: 10vh; }
-        .container { background: white; color: black; display: inline-block; padding: 30px; border-radius: 20px; }
-        .price { font-size: 4rem; font-weight: bold; color: #10b981; margin: 20px 0; }
-        h1 { font-size: 2rem; }
-    </style>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
-<body>
-
-    <h1>SCAN TO PAY</h1>
-    <div class="container">
-        <div id="qrcode"></div>
-        <div class="price" id="amtDisplay">₹0.00</div>
-    </div>
-    <p style="margin-top: 20px; color: #888;">Pharmacy Digital Billing System</p>
-
-<script>
-    // 1. Get the price from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const total = urlParams.get('total') || "0.00";
+<body class="bg-slate-900 h-screen flex flex-col items-center justify-center p-4">
     
-    document.getElementById('amtDisplay').innerText = "₹" + total;
+    <div id="pairing" class="bg-white p-12 rounded-[40px] shadow-2xl text-center max-w-md w-full">
+        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="text-4xl">🔗</span>
+        </div>
+        <h1 class="text-3xl font-black text-slate-800 mb-2">Tablet Link</h1>
+        <p class="text-slate-500 mb-8">Enter the 4-digit PIN shown on your laptop dashboard.</p>
+        <input type="number" id="pin" placeholder="0000" class="text-6xl w-full text-center tracking-widest font-black border-b-8 border-blue-600 mb-10 outline-none text-blue-600">
+        <button onclick="connect()" class="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition">CONNECT NOW</button>
+    </div>
 
-    // 2. Generate UPI QR Code (Change 'YOURNAME@upi' to your actual UPI ID)
-    const upiID = "YOURNAME@upi"; 
-    const upiLink = `upi://pay?pa=${upiID}&pn=Pharmacy&am=${total}&cu=INR`;
+    <div id="display" class="hidden w-full h-full max-w-7xl gap-6 animate-in fade-in zoom-in duration-500">
+        <div class="w-1/2 bg-white rounded-[40px] p-10 shadow-2xl flex flex-col">
+            <h2 class="text-3xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                Items in Cart
+            </h2>
+            <div id="items" class="space-y-4 overflow-y-auto flex-grow pr-4"></div>
+            <div class="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center text-slate-400">
+                <span class="text-sm font-bold uppercase tracking-widest">Pharmacy Receipt</span>
+                <span class="text-sm">Moranhat Branch</span>
+            </div>
+        </div>
 
-    new QRCode(document.getElementById("qrcode"), {
-        text: upiLink,
-        width: 300,
-        height: 300
-    });
-</script>
+        <div class="w-1/2 flex flex-col justify-center items-center bg-blue-600 rounded-[40px] shadow-2xl p-12 text-white">
+            <p class="text-blue-200 text-xl font-bold uppercase tracking-widest mb-2">Total Amount Due</p>
+            <div id="total" class="text-9xl font-black mb-10">₹0</div>
+            
+            <div id="qr-container" class="hidden bg-white p-6 rounded-[30px] shadow-inner">
+                <div id="qrcode" class="rounded-xl overflow-hidden"></div>
+                <div class="text-slate-800 text-center mt-4">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">UPI Merchant ID</p>
+                    <p class="text-xs font-black">vyapar.172721135496@hdfcbank</p>
+                </div>
+            </div>
+
+            <div id="cash-msg" class="hidden bg-blue-500 p-10 rounded-[30px] border-4 border-blue-400 text-center">
+                <p class="text-6xl mb-4">💵</p>
+                <p class="text-2xl font-black uppercase tracking-widest">Cash Payment</p>
+                <p class="text-blue-100 mt-2">Please hand over the amount to the pharmacist</p>
+            </div>
+
+            <div id="idle-msg" class="text-blue-300 text-lg italic">Waiting for items...</div>
+        </div>
+    </div>
+
+    <script>
+        const peer = new Peer();
+        let conn;
+
+        function connect() {
+            const pin = document.getElementById('pin').value;
+            if(!pin) return;
+            
+            conn = peer.connect('pharma-moranhat-' + pin);
+            
+            conn.on('open', () => {
+                document.getElementById('pairing').classList.add('hidden');
+                document.getElementById('display').classList.remove('hidden');
+                document.getElementById('display').classList.add('flex');
+            });
+
+            conn.on('data', data => {
+                const itemsDiv = document.getElementById('items');
+                const idleMsg = document.getElementById('idle-msg');
+                
+                // Render Items
+                if(data.cart.length > 0) {
+                    idleMsg.classList.add('hidden');
+                    itemsDiv.innerHTML = data.cart.map(i => `
+                        <div class="flex justify-between items-center bg-slate-50 p-6 rounded-2xl">
+                            <div>
+                                <p class="text-2xl font-black text-slate-800">${i.name}</p>
+                                <p class="text-sm font-bold text-slate-400 uppercase">Qty: ${i.cartQty}</p>
+                            </div>
+                            <b class="text-3xl text-blue-600 font-black">₹${(i.sale * i.cartQty).toFixed(2)}</b>
+                        </div>
+                    `).join('');
+                } else {
+                    itemsDiv.innerHTML = "";
+                    idleMsg.classList.remove('hidden');
+                }
+
+                document.getElementById('total').innerText = data.total;
+                const val = parseFloat(data.total.replace('₹',''));
+                
+                // Logic for UPI vs Cash
+                document.getElementById('qr-container').classList.add('hidden');
+                document.getElementById('cash-msg').classList.add('hidden');
+
+                if(val > 0) {
+                    if(data.mode === 'UPI') {
+                        document.getElementById('qr-container').classList.remove('hidden');
+                        document.getElementById('qrcode').innerHTML = "";
+                        new QRCode(document.getElementById('qrcode'), {
+                            text: `upi://pay?pa=vyapar.172721135496@hdfcbank&pn=Pharmacy&am=${val}&cu=INR`,
+                            width: 280, height: 280,
+                            colorDark : "#1e1b4b",
+                        });
+                    } else {
+                        document.getElementById('cash-msg').classList.remove('hidden');
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
